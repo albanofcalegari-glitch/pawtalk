@@ -27,7 +27,7 @@ def list_dogs(user: User = Depends(get_current_user), session: Session = Depends
 @router.post("", response_model=DogResponse, status_code=201)
 def create_dog(
     name: str = Form(...),
-    breed: str = Form(...),
+    breed: str = Form(""),
     photo: Optional[UploadFile] = File(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),

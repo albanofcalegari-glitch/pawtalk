@@ -44,7 +44,10 @@ export interface ClipResponse {
   dog_id: number
   dog_name: string
   label: string
+  media_type: string
   duration_ms: number
+  has_video: boolean
+  has_photo: boolean
   processed: boolean
   purged: boolean
   created_at: string
@@ -54,6 +57,7 @@ export interface ClipStats {
   total: number
   by_label: Record<string, number>
   by_dog: Record<string, number>
+  by_media: Record<string, number>
   processed: number
   pending: number
   disk_mb: number
@@ -103,12 +107,20 @@ export const api = {
     return request<void>(`/api/dogs/${dogId}`, { method: 'DELETE' })
   },
 
-  uploadClip(dogId: number, label: string, durationMs: number, audio: Blob) {
+  uploadClip(dogId: number, label: string, durationMs: number, opts: {
+    audio?: Blob
+    video?: Blob
+    photo?: Blob
+    mediaType?: 'audio' | 'video' | 'photo'
+  }) {
     const form = new FormData()
     form.append('dog_id', dogId.toString())
     form.append('label', label)
+    form.append('media_type', opts.mediaType || 'audio')
     form.append('duration_ms', durationMs.toString())
-    form.append('audio', audio, `clip_${Date.now()}.webm`)
+    if (opts.audio) form.append('audio', opts.audio, `clip_${Date.now()}.webm`)
+    if (opts.video) form.append('video', opts.video, `clip_${Date.now()}_video.webm`)
+    if (opts.photo) form.append('photo', opts.photo, `clip_${Date.now()}_photo.jpg`)
     return request<ClipResponse>('/api/clips', { method: 'POST', body: form })
   },
 

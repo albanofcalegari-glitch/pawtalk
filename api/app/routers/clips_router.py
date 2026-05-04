@@ -11,13 +11,19 @@ from ..config import CLIPS_DIR
 
 router = APIRouter(prefix="/api/clips", tags=["clips"])
 
+VALID_LABELS = {"bark", "whine", "growl", "howl", "pant"}
+VALID_MEDIA_TYPES = {"audio", "video", "photo"}
+
 
 class ClipResponse(BaseModel):
     id: int
     dog_id: int
     dog_name: str
     label: str
+    media_type: str
     duration_ms: int
+    has_video: bool
+    has_photo: bool
     processed: bool
     purged: bool
     created_at: str
@@ -27,6 +33,7 @@ class StatsResponse(BaseModel):
     total: int
     by_label: dict[str, int]
     by_dog: dict[str, int]
+    by_media: dict[str, int]
     processed: int
     pending: int
     disk_mb: float
@@ -36,8 +43,11 @@ class StatsResponse(BaseModel):
 def upload_clip(
     dog_id: int = Form(...),
     label: str = Form(...),
-    duration_ms: int = Form(...),
-    audio: UploadFile = File(...),
+    media_type: str = Form("audio"),
+    duration_ms: int = Form(0),
+    audio: Optional[UploadFile] = File(None),
+    video: Optional[UploadFile] = File(None),
+    photo: Optional[UploadFile] = File(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -45,22 +55,36 @@ def upload_clip(
     if not dog:
         raise HTTPException(status_code=404, detail="Perro no encontrado")
 
-    valid_labels = {"bark", "whine", "growl", "howl", "pant"}
-    if label not in valid_labels:
-        raise HTTPException(status_code=400, detail=f"Label debe ser uno de: {valid_labels}")
+    if label not in VALID_LABELS:
+        raise HTTPException(status_code=400, detail=f"Label debe ser uno de: {VALID_LABELS}")
 
-    clip = Clip(dog_id=dog_id, label=label, duration_ms=duration_ms, file_path="")
+    if media_type not in VALID_MEDIA_TYPES:
+        raise HTTPException(status_code=400, detail=f"media_type debe ser uno de: {VALID_MEDIA_TYPES}")
+
+    clip = Clip(dog_id=dog_id, label=label, media_type=media_type, duration_ms=duration_ms)
     session.add(clip)
     session.commit()
     session.refresh(clip)
 
-    ext = "webm"
-    filename = f"{dog.name.lower()}_{label}_{clip.id}.{ext}"
-    filepath = CLIPS_DIR / filename
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(audio.file, f)
+    prefix = f"{dog.name.lower()}_{label}_{clip.id}"
 
-    clip.file_path = filename
+    if audio:
+        filename = f"{prefix}.webm"
+        _save_file(audio, CLIPS_DIR / filename)
+        clip.file_path = filename
+
+    if video:
+        ext = "webm"
+        filename = f"{prefix}_video.{ext}"
+        _save_file(video, CLIPS_DIR / filename)
+        clip.video_path = filename
+
+    if photo:
+        ext = photo.filename.split(".")[-1] if photo.filename else "jpg"
+        filename = f"{prefix}_photo.{ext}"
+        _save_file(photo, CLIPS_DIR / filename)
+        clip.photo_path = filename
+
     session.add(clip)
     session.commit()
     session.refresh(clip)
@@ -72,6 +96,7 @@ def upload_clip(
 def list_clips(
     dog_id: Optional[int] = None,
     label: Optional[str] = None,
+    media_type: Optional[str] = None,
     limit: int = 50,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -81,6 +106,8 @@ def list_clips(
         query = query.where(Clip.dog_id == dog_id)
     if label:
         query = query.where(Clip.label == label)
+    if media_type:
+        query = query.where(Clip.media_type == media_type)
     query = query.order_by(Clip.created_at.desc()).limit(limit)
 
     results = session.exec(query).all()
@@ -95,22 +122,27 @@ def clip_stats(user: User = Depends(get_current_user), session: Session = Depend
 
     by_label: dict[str, int] = {}
     by_dog: dict[str, int] = {}
+    by_media: dict[str, int] = {}
     processed = 0
     total_bytes = 0
 
     for clip, dog in clips:
         by_label[clip.label] = by_label.get(clip.label, 0) + 1
         by_dog[dog.name] = by_dog.get(dog.name, 0) + 1
+        by_media[clip.media_type] = by_media.get(clip.media_type, 0) + 1
         if clip.processed:
             processed += 1
-        clip_path = CLIPS_DIR / clip.file_path
-        if clip_path.exists():
-            total_bytes += clip_path.stat().st_size
+        for p in [clip.file_path, clip.video_path, clip.photo_path]:
+            if p:
+                fp = CLIPS_DIR / p
+                if fp.exists():
+                    total_bytes += fp.stat().st_size
 
     return StatsResponse(
         total=len(clips),
         by_label=by_label,
         by_dog=by_dog,
+        by_media=by_media,
         processed=processed,
         pending=len(clips) - processed,
         disk_mb=round(total_bytes / 1024 / 1024, 2),
@@ -131,12 +163,16 @@ def purge_processed(user: User = Depends(get_current_user), session: Session = D
     freed_bytes = 0
 
     for clip, _ in clips:
-        clip_path = CLIPS_DIR / clip.file_path
-        if clip_path.exists():
-            freed_bytes += clip_path.stat().st_size
-            clip_path.unlink()
+        for p in [clip.file_path, clip.video_path, clip.photo_path]:
+            if p:
+                fp = CLIPS_DIR / p
+                if fp.exists():
+                    freed_bytes += fp.stat().st_size
+                    fp.unlink()
         clip.purged = True
         clip.file_path = ""
+        clip.video_path = None
+        clip.photo_path = None
         session.add(clip)
         purged_count += 1
 
@@ -147,13 +183,21 @@ def purge_processed(user: User = Depends(get_current_user), session: Session = D
     }
 
 
+def _save_file(upload: UploadFile, path: Path):
+    with open(path, "wb") as f:
+        shutil.copyfileobj(upload.file, f)
+
+
 def _clip_response(clip: Clip, dog_name: str) -> ClipResponse:
     return ClipResponse(
         id=clip.id,
         dog_id=clip.dog_id,
         dog_name=dog_name,
         label=clip.label,
+        media_type=clip.media_type,
         duration_ms=clip.duration_ms,
+        has_video=bool(clip.video_path),
+        has_photo=bool(clip.photo_path),
         processed=clip.processed,
         purged=clip.purged,
         created_at=clip.created_at.isoformat(),

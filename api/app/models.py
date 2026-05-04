@@ -28,9 +28,12 @@ class Dog(SQLModel, table=True):
 class Clip(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dog_id: int = Field(foreign_key="dog.id")
-    label: str  # bark, whine, growl, howl, pant
-    file_path: str
-    duration_ms: int
+    label: str
+    media_type: str = Field(default="audio")  # audio, video, photo
+    file_path: str = ""
+    video_path: Optional[str] = None
+    photo_path: Optional[str] = None
+    duration_ms: int = 0
     processed: bool = Field(default=False)
     purged: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)

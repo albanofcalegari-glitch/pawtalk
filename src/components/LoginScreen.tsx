@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth'
 
 export function LoginScreen() {
   const { login, register } = useAuth()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<'login' | 'register'>('register')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -27,10 +27,10 @@ export function LoginScreen() {
     }
   }
 
-  const inputCls = "w-full px-4 py-3 bg-surface border border-border rounded-xl text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+  const inputCls = "w-full px-4 py-3 bg-surface border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-5 bg-bg">
+    <div className="min-h-dvh flex flex-col items-center justify-start px-4 py-10 bg-bg safe-area-inset">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="text-center">
@@ -39,8 +39,34 @@ export function LoginScreen() {
           <p className="text-sm text-text-muted mt-1">Traductor canino inteligente</p>
         </div>
 
+        {/* Tab switcher */}
+        <div className="flex gap-1 p-1 bg-surface border border-border rounded-xl">
+          <button
+            type="button"
+            onClick={() => { setMode('register'); setError('') }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              mode === 'register'
+                ? 'bg-primary/15 text-primary-light border border-primary/30'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            Registrarme
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('login'); setError('') }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              mode === 'login'
+                ? 'bg-primary/15 text-primary-light border border-primary/30'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            Ya tengo cuenta
+          </button>
+        </div>
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'register' && (
             <input
               type="text"
@@ -49,6 +75,7 @@ export function LoginScreen() {
               onChange={e => setName(e.target.value)}
               className={inputCls}
               required
+              autoComplete="name"
             />
           )}
           <input
@@ -58,6 +85,8 @@ export function LoginScreen() {
             onChange={e => setEmail(e.target.value)}
             className={inputCls}
             required
+            autoComplete="email"
+            inputMode="email"
           />
           <input
             type="password"
@@ -67,6 +96,7 @@ export function LoginScreen() {
             className={inputCls}
             required
             minLength={4}
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
           />
 
           {error && (
@@ -78,21 +108,17 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-primary text-white font-bold text-base shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-50 transition-all"
+            className="w-full py-3.5 rounded-xl bg-primary text-white font-bold text-base shadow-lg shadow-primary/30 hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all"
           >
             {loading ? 'Cargando...' : mode === 'login' ? 'Ingresar' : 'Crear cuenta'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-text-muted">
-          {mode === 'login' ? '¿No tenés cuenta?' : '¿Ya tenés cuenta?'}{' '}
-          <button
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-            className="text-primary-light font-semibold hover:underline"
-          >
-            {mode === 'login' ? 'Registrate' : 'Ingresá'}
-          </button>
-        </p>
+        {mode === 'register' && (
+          <p className="text-center text-xs text-text-muted/70 px-4">
+            Registrate para empezar a grabar los sonidos de tu perro y ayudar a entrenar el traductor canino
+          </p>
+        )}
       </div>
     </div>
   )

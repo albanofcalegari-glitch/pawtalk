@@ -184,7 +184,7 @@ function MainApp() {
             </section>
           </div>
         ) : (
-          <RecordMode />
+          <RecordMode selectedDogId={selectedDog.id} selectedDogName={selectedDog.name} />
         )}
       </main>
 

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import init_db
 from .config import UPLOADS_DIR, PHOTOS_DIR, CLIPS_DIR
-from .routers import auth_router, dogs_router, clips_router
+from .routers import auth_router, dogs_router, clips_router, ml_router
 
 PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 CLIPS_DIR.mkdir(parents=True, exist_ok=True)
@@ -23,6 +23,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 app.include_router(auth_router.router)
 app.include_router(dogs_router.router)
 app.include_router(clips_router.router)
+app.include_router(ml_router.router)
 
 
 @app.on_event("startup")

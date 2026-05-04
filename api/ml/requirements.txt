@@ -1,0 +1,7 @@
+numpy>=1.26
+librosa>=0.10
+scikit-learn>=1.4
+torch>=2.2
+torchaudio>=2.2
+demucs>=4.0
+joblib>=1.3
