@@ -1,0 +1,12 @@
+services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api/uploads:/app/uploads
+      - ./api/pawtalk.db:/app/pawtalk.db
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DATABASE_URL=sqlite:///pawtalk.db

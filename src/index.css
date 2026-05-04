@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg: #0a0a12;
+  --color-bg-elevated: #0f0f1a;
+  --color-surface: #161625;
+  --color-surface-light: #1e1e35;
+  --color-surface-hover: #262645;
+  --color-border: #2a2a4a;
+  --color-border-light: #3a3a5a;
+  --color-text: #ededf5;
+  --color-text-secondary: #b0b0cc;
+  --color-text-muted: #6a6a8a;
+  --color-primary: #8b5cf6;
+  --color-primary-light: #a78bfa;
+  --color-primary-glow: #7c3aed;
+  --color-accent: #f59e0b;
+  --color-accent-light: #fbbf24;
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-danger: #ef4444;
+  --color-danger-light: #f87171;
+  --color-cyan: #06b6d4;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 80px rgba(139, 92, 246, 0.2); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+body {
+  @apply bg-bg text-text font-sans antialiased;
+  margin: 0;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}

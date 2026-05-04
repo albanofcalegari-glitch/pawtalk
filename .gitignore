@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+
+# Env
+.env
+.env.local
+*.local
+
+# Python
+api/__pycache__/
+api/**/__pycache__/
+*.pyc
+api/pawtalk.db
+
+# Uploads (keep dirs, ignore content)
+api/uploads/photos/*
+api/uploads/clips/*
+!api/uploads/photos/.gitkeep
+!api/uploads/clips/.gitkeep
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
