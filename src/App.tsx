@@ -80,7 +80,7 @@ function MainApp() {
               <div className="flex flex-col items-center gap-2">
                 {dog.photo_url ? (
                   <img
-                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${dog.photo_url}`}
+                    src={`${import.meta.env.VITE_API_URL ?? ''}${dog.photo_url}`}
                     className="w-12 h-12 rounded-full object-cover border-2 border-border"
                   />
                 ) : (
