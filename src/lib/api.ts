@@ -9,6 +9,36 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+function uploadWithProgress<T>(path: string, form: FormData, onProgress: (pct: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_URL}${path}`)
+
+    const token = getToken()
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText))
+      } else {
+        try {
+          const body = JSON.parse(xhr.responseText)
+          reject(new Error(body.detail || 'Error de servidor'))
+        } catch {
+          reject(new Error(xhr.statusText || 'Error de servidor'))
+        }
+      }
+    }
+
+    xhr.onerror = () => reject(new Error('Error de red'))
+    xhr.send(form)
+  })
+}
+
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...opts,
@@ -30,6 +60,24 @@ export interface UserResponse {
   id: number
   email: string
   name: string
+  neighborhood: string | null
+}
+
+export interface PlaceResult {
+  name: string
+  address: string
+  housenumber: string
+  phone: string
+  website: string
+  opening_hours: string
+  lat: number
+  lon: number
+}
+
+export interface PlacesResponse {
+  results: PlaceResult[]
+  center: { lat: number; lon: number }
+  radius: number
 }
 
 export interface DogResponse {
@@ -64,11 +112,11 @@ export interface ClipStats {
 }
 
 export const api = {
-  register(email: string, name: string, password: string) {
+  register(email: string, name: string, password: string, neighborhood?: string) {
     return request<AuthResponse>('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password }),
+      body: JSON.stringify({ email, name, password, neighborhood: neighborhood || null }),
     })
   },
 
@@ -112,15 +160,23 @@ export const api = {
     video?: Blob
     photo?: Blob
     mediaType?: 'audio' | 'video' | 'photo'
+    fileName?: string
+    onProgress?: (pct: number) => void
   }) {
     const form = new FormData()
     form.append('dog_id', dogId.toString())
     form.append('label', label)
     form.append('media_type', opts.mediaType || 'audio')
     form.append('duration_ms', durationMs.toString())
-    if (opts.audio) form.append('audio', opts.audio, `clip_${Date.now()}.webm`)
-    if (opts.video) form.append('video', opts.video, `clip_${Date.now()}_video.webm`)
-    if (opts.photo) form.append('photo', opts.photo, `clip_${Date.now()}_photo.jpg`)
+    const ts = Date.now()
+    const ext = opts.fileName?.split('.').pop() || null
+    if (opts.audio) form.append('audio', opts.audio, `clip_${ts}.${ext || 'webm'}`)
+    if (opts.video) form.append('video', opts.video, `clip_${ts}_video.${ext || 'webm'}`)
+    if (opts.photo) form.append('photo', opts.photo, `clip_${ts}_photo.${ext || 'jpg'}`)
+
+    if (opts.onProgress) {
+      return uploadWithProgress<ClipResponse>('/api/clips', form, opts.onProgress)
+    }
     return request<ClipResponse>('/api/clips', { method: 'POST', body: form })
   },
 
@@ -137,5 +193,17 @@ export const api = {
 
   purgeClips() {
     return request<{ purged: number; freed_mb: number }>('/api/clips/purge', { method: 'POST' })
+  },
+
+  updateProfile(data: { neighborhood?: string }) {
+    return request<UserResponse>('/api/auth/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  },
+
+  searchPlaces(category: 'petshop' | 'veterinaria' | 'urgencias') {
+    return request<PlacesResponse>(`/api/places/search?category=${category}`)
   },
 }

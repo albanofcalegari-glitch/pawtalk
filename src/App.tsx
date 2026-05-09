@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from './lib/auth'
 import { useAudioCapture } from './hooks/useAudioCapture'
 import { AudioVisualizer } from './components/AudioVisualizer'
@@ -6,8 +6,12 @@ import { DetectionCard } from './components/DetectionCard'
 import { ListenButton } from './components/ListenButton'
 import { Header } from './components/Header'
 import { RecordMode } from './components/RecordMode'
+import { NearbyPlaces } from './components/NearbyPlaces'
 import { LoginScreen } from './components/LoginScreen'
 import { OnboardingDogs } from './components/OnboardingDogs'
+import { ManageDogs } from './components/ManageDogs'
+import { AdminLogin } from './components/AdminLogin'
+import { AdminDashboard } from './components/AdminDashboard'
 import type { ClassificationResult } from './lib/audioClassifier'
 
 interface DetectionEvent {
@@ -19,10 +23,35 @@ interface DetectionEvent {
 
 let nextId = 0
 
-type Tab = 'listen' | 'record'
+type Tab = 'listen' | 'record' | 'more'
+
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash)
+  useEffect(() => {
+    const handler = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [])
+  return hash
+}
+
+function AdminPage() {
+  const [token, setToken] = useState(() => localStorage.getItem('pawtalk-admin-token') || '')
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('pawtalk-admin-token')
+    setToken('')
+  }, [])
+
+  if (!token) return <AdminLogin onAuthenticated={setToken} />
+  return <AdminDashboard token={token} onLogout={handleLogout} />
+}
 
 export default function App() {
+  const hash = useHash()
   const { user, dogs, loading } = useAuth()
+
+  if (hash === '#admin') return <AdminPage />
 
   if (loading) {
     return (
@@ -46,6 +75,7 @@ function MainApp() {
   const [tab, setTab] = useState<Tab>('listen')
   const [history, setHistory] = useState<DetectionEvent[]>([])
   const [selectedDogIdx, setSelectedDogIdx] = useState(0)
+  const [dogsOpen, setDogsOpen] = useState(false)
 
   const selectedDog = dogs[selectedDogIdx] || dogs[0]
 
@@ -66,7 +96,7 @@ function MainApp() {
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-5 space-y-5">
         {/* Dog selector from backend */}
-        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(dogs.length, 3)}, 1fr)` }}>
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(dogs.length + 1, 4)}, 1fr)` }}>
           {dogs.map((dog, idx) => (
             <button
               key={dog.id}
@@ -97,7 +127,20 @@ function MainApp() {
               </div>
             </button>
           ))}
+          <button
+            onClick={() => setDogsOpen(true)}
+            className="rounded-2xl p-3 border-2 border-dashed border-border hover:border-primary/40 bg-surface/50 transition-all duration-200 flex flex-col items-center justify-center gap-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-surface-light flex items-center justify-center">
+              <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </div>
+            <p className="text-[11px] text-text-muted font-medium">Agregar</p>
+          </button>
         </div>
+
+        <ManageDogs open={dogsOpen} onClose={() => setDogsOpen(false)} />
 
         {/* Tab switcher */}
         <div className="flex gap-1 p-1 bg-surface border border-border rounded-2xl">
@@ -126,6 +169,20 @@ function MainApp() {
               <circle cx="12" cy="12" r="6" />
             </svg>
             Grabar datos
+          </button>
+          <button
+            onClick={() => setTab('more')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'more'
+                ? 'bg-accent/15 text-accent-light border border-accent/30'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            Cerca mío
           </button>
         </div>
 
@@ -183,8 +240,10 @@ function MainApp() {
               )}
             </section>
           </div>
-        ) : (
+        ) : tab === 'record' ? (
           <RecordMode selectedDogId={selectedDog.id} selectedDogName={selectedDog.name} />
+        ) : (
+          <NearbyPlaces />
         )}
       </main>
 

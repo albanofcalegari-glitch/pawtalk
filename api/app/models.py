@@ -8,6 +8,7 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     name: str
     hashed_password: str
+    neighborhood: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     dogs: list["Dog"] = Relationship(back_populates="owner")
@@ -23,6 +24,15 @@ class Dog(SQLModel, table=True):
 
     owner: Optional[User] = Relationship(back_populates="dogs")
     clips: list["Clip"] = Relationship(back_populates="dog")
+
+
+class AdminOtp(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True)
+    code: str
+    expires_at: datetime
+    used: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Clip(SQLModel, table=True):

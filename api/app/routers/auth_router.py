@@ -13,6 +13,7 @@ class RegisterBody(BaseModel):
     email: EmailStr
     name: str
     password: str
+    neighborhood: str | None = None
 
 
 class TokenResponse(BaseModel):
@@ -24,6 +25,11 @@ class UserResponse(BaseModel):
     id: int
     email: str
     name: str
+    neighborhood: str | None = None
+
+
+class UpdateProfileBody(BaseModel):
+    neighborhood: str | None = None
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
@@ -36,6 +42,7 @@ def register(body: RegisterBody, session: Session = Depends(get_session)):
         email=body.email,
         name=body.name,
         hashed_password=hash_password(body.password),
+        neighborhood=body.neighborhood,
     )
     session.add(user)
     session.commit()
@@ -57,4 +64,14 @@ def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depend
 
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)):
-    return UserResponse(id=user.id, email=user.email, name=user.name)
+    return UserResponse(id=user.id, email=user.email, name=user.name, neighborhood=user.neighborhood)
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_profile(body: UpdateProfileBody, user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    if body.neighborhood is not None:
+        user.neighborhood = body.neighborhood
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return UserResponse(id=user.id, email=user.email, name=user.name, neighborhood=user.neighborhood)

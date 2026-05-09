@@ -6,9 +6,10 @@ interface AuthState {
   dogs: DogResponse[]
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, name: string, password: string) => Promise<void>
+  register: (email: string, name: string, password: string, neighborhood?: string) => Promise<void>
   logout: () => void
   refreshDogs: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -43,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setDogs(d)
   }
 
-  const register = async (email: string, name: string, password: string) => {
-    const res = await api.register(email, name, password)
+  const register = async (email: string, name: string, password: string, neighborhood?: string) => {
+    const res = await api.register(email, name, password, neighborhood)
     localStorage.setItem('pawtalk-token', res.access_token)
     const u = await api.me()
     setUser(u)
@@ -62,8 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setDogs(d)
   }
 
+  const refreshUser = async () => {
+    const u = await api.me()
+    setUser(u)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, dogs, loading, login, register, logout, refreshDogs }}>
+    <AuthContext.Provider value={{ user, dogs, loading, login, register, logout, refreshDogs, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
