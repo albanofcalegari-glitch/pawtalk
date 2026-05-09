@@ -13,7 +13,23 @@ SEARCH_RADIUS = 3000
 CATEGORY_QUERIES = {
     "petshop": '[shop=pet]',
     "veterinaria": '[amenity=veterinary]',
-    "urgencias": '[amenity=veterinary][opening_hours~"24/7"]',
+    "urgencias": '[amenity=veterinary][opening_hours~"24"]',
+}
+
+CURATED_PLACES: dict[str, list[dict]] = {
+    "urgencias": [
+        {
+            "name": "Leocan Veterinaria 24hs",
+            "address": "Palermo, CABA",
+            "housenumber": "",
+            "phone": "",
+            "website": "",
+            "opening_hours": "24/7",
+            "lat": -34.5809,
+            "lon": -58.4236,
+            "curated": True,
+        },
+    ],
 }
 
 
@@ -79,6 +95,15 @@ async def search_places(
 
     lat, lon = await geocode(f"{user.neighborhood}, Argentina")
     places = await search_overpass(lat, lon, category)
+
+    for curated in CURATED_PLACES.get(category, []):
+        dist_sq = (curated["lat"] - lat) ** 2 + (curated["lon"] - lon) ** 2
+        max_dist_sq = (SEARCH_RADIUS / 111_000) ** 2
+        already = any(p["name"].lower() == curated["name"].lower() for p in places)
+        if not already and dist_sq <= max_dist_sq:
+            places.append(curated)
+
+    places.sort(key=lambda p: ((p["lat"] - lat) ** 2 + (p["lon"] - lon) ** 2))
     return {"results": places, "center": {"lat": lat, "lon": lon}, "radius": SEARCH_RADIUS}
 
 
