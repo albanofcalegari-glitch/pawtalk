@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/auth'
+import { NeighborhoodInput } from './NeighborhoodInput'
 
 export function LoginScreen() {
   const { login, register } = useAuth()
@@ -80,13 +81,10 @@ export function LoginScreen() {
               autoComplete="name"
             />
           )}
-          <input
-            type="text"
-            placeholder="Barrio o zona (ej: Boedo, CABA)"
+          <NeighborhoodInput
             value={neighborhood}
-            onChange={e => setNeighborhood(e.target.value)}
+            onChange={setNeighborhood}
             className={inputCls}
-            autoComplete="address-level2"
           />
           <input
             type="email"

@@ -206,4 +206,8 @@ export const api = {
   searchPlaces(category: 'petshop' | 'veterinaria' | 'urgencias') {
     return request<PlacesResponse>(`/api/places/search?category=${category}`)
   },
+
+  autocompleteNeighborhood(q: string) {
+    return request<{ label: string; lat: number; lon: number }[]>(`/api/places/autocomplete?q=${encodeURIComponent(q)}`)
+  },
 }

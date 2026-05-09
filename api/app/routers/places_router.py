@@ -114,3 +114,47 @@ async def geocode_neighborhood(
 ):
     lat, lon = await geocode(f"{q}, Argentina")
     return {"lat": lat, "lon": lon, "query": q}
+
+
+@router.get("/autocomplete")
+async def autocomplete_neighborhood(
+    q: str = Query(..., min_length=2),
+):
+    params = {
+        "q": q,
+        "format": "json",
+        "limit": 5,
+        "countrycodes": "ar",
+        "addressdetails": 1,
+    }
+    async with httpx.AsyncClient(timeout=8, headers=HEADERS) as client:
+        resp = await client.get(NOMINATIM_URL, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+    suggestions = []
+    seen = set()
+    for item in data:
+        addr = item.get("address", {})
+        parts = []
+        suburb = addr.get("suburb") or addr.get("neighbourhood") or addr.get("town") or addr.get("city_district", "")
+        city = addr.get("city") or addr.get("state", "")
+        if suburb:
+            parts.append(suburb)
+        if city and city != suburb:
+            parts.append(city)
+        state = addr.get("state", "")
+        if state and state not in parts:
+            parts.append(state)
+
+        label = ", ".join(parts) if parts else item.get("display_name", "").split(",")[0]
+        if label in seen:
+            continue
+        seen.add(label)
+        suggestions.append({
+            "label": label,
+            "lat": float(item["lat"]),
+            "lon": float(item["lon"]),
+        })
+
+    return suggestions

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../lib/auth'
 import { api, type PlaceResult } from '../lib/api'
+import { NeighborhoodInput } from './NeighborhoodInput'
 
 type Category = 'petshop' | 'veterinaria' | 'urgencias'
 
@@ -77,14 +78,10 @@ export function NearbyPlaces() {
     return (
       <div className="space-y-4 py-6">
         <h3 className="text-lg font-bold text-text text-center">Tu barrio</h3>
-        <input
-          type="text"
-          placeholder="Ej: Boedo, CABA"
+        <NeighborhoodInput
           value={barrio}
-          onChange={e => setBarrio(e.target.value)}
-          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+          onChange={setBarrio}
           autoFocus
-          onKeyDown={e => { if (e.key === 'Enter') handleSaveBarrio() }}
         />
         <div className="flex gap-2">
           <button
