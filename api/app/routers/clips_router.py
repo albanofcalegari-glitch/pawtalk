@@ -11,7 +11,7 @@ from ..config import CLIPS_DIR
 
 router = APIRouter(prefix="/api/clips", tags=["clips"])
 
-VALID_LABELS = {"bark", "whine", "growl", "howl", "pant"}
+VALID_LABELS = {"bark", "whine", "growl", "howl", "pant", "lying", "sitting", "playing", "eating", "sleeping", "alert", "relaxed", "walking", "other"}
 VALID_MEDIA_TYPES = {"audio", "video", "photo"}
 
 
@@ -69,12 +69,13 @@ def upload_clip(
     prefix = f"{dog.name.lower()}_{label}_{clip.id}"
 
     if audio:
-        filename = f"{prefix}.webm"
+        ext = _get_ext(audio.filename, "webm")
+        filename = f"{prefix}.{ext}"
         _save_file(audio, CLIPS_DIR / filename)
         clip.file_path = filename
 
     if video:
-        ext = "webm"
+        ext = _get_ext(video.filename, "webm")
         filename = f"{prefix}_video.{ext}"
         _save_file(video, CLIPS_DIR / filename)
         clip.video_path = filename
@@ -186,6 +187,12 @@ def purge_processed(user: User = Depends(get_current_user), session: Session = D
 def _save_file(upload: UploadFile, path: Path):
     with open(path, "wb") as f:
         shutil.copyfileobj(upload.file, f)
+
+
+def _get_ext(filename: str | None, default: str) -> str:
+    if filename and "." in filename:
+        return filename.rsplit(".", 1)[-1].lower()
+    return default
 
 
 def _clip_response(clip: Clip, dog_name: str) -> ClipResponse:

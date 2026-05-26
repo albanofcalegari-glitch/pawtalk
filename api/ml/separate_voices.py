@@ -9,14 +9,37 @@ from pathlib import Path
 from config import DB_PATH, CLIPS_DIR, SEPARATED_DIR
 
 
-def get_unprocessed_clips() -> list[dict]:
+def _resolve_wav(clip: dict) -> Path | None:
+    if clip["file_path"]:
+        p = CLIPS_DIR / clip["file_path"]
+        wav = p.with_suffix(".wav")
+        if wav.exists():
+            return wav
+        if p.exists():
+            return p
+    if clip["video_path"]:
+        wav = (CLIPS_DIR / clip["video_path"]).with_suffix(".wav")
+        if wav.exists():
+            return wav
+    return None
+
+
+def get_unseparated_clips() -> list[dict]:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
-        "SELECT id, file_path, video_path FROM clip WHERE processed = 0 AND purged = 0"
+        "SELECT id, file_path, video_path FROM clip "
+        "WHERE purged = 0 AND media_type != 'photo'"
     ).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    clips = []
+    for r in rows:
+        d = dict(r)
+        out_dir = SEPARATED_DIR / str(d["id"])
+        if out_dir.exists():
+            continue
+        clips.append(d)
+    return clips
 
 
 def separate_clip(clip_id: int, audio_path: Path):
@@ -29,12 +52,9 @@ def separate_clip(clip_id: int, audio_path: Path):
         "--two-stems", "vocals",
         "-o", str(SEPARATED_DIR),
         "-n", "htdemucs",
-        "--filename", "{stem}.{ext}",
         str(audio_path),
     ], check=True)
 
-    # demucs outputs to separated/htdemucs/{filename}/vocals.wav & no_vocals.wav
-    # move to our structure
     demucs_out = SEPARATED_DIR / "htdemucs" / audio_path.stem
     if demucs_out.exists():
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -49,17 +69,15 @@ def separate_clip(clip_id: int, audio_path: Path):
 
 
 def run():
-    clips = get_unprocessed_clips()
+    clips = get_unseparated_clips()
     if not clips:
-        print("No hay clips sin procesar.")
+        print("No hay clips sin separar.")
         return
 
-    print(f"Procesando {len(clips)} clips...")
+    print(f"Separando {len(clips)} clips...")
     for clip in clips:
-        audio_file = None
-        if clip["file_path"]:
-            audio_file = CLIPS_DIR / clip["file_path"]
-        if not audio_file or not audio_file.exists():
+        audio_file = _resolve_wav(clip)
+        if not audio_file:
             print(f"  Clip {clip['id']}: sin archivo de audio, saltando")
             continue
 

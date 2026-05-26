@@ -1,4 +1,5 @@
 export type SoundType = 'bark' | 'whine' | 'growl' | 'howl' | 'pant' | 'silence'
+  | 'lying' | 'sitting' | 'playing' | 'eating' | 'sleeping' | 'alert' | 'relaxed' | 'walking' | 'other'
 
 export interface ClassificationResult {
   type: SoundType
@@ -14,6 +15,15 @@ const LABELS: Record<SoundType, string> = {
   howl: 'Aullido',
   pant: 'Jadeo',
   silence: 'Silencio',
+  lying: 'Acostado',
+  sitting: 'Sentado',
+  playing: 'Jugando',
+  eating: 'Comiendo',
+  sleeping: 'Durmiendo',
+  alert: 'Alerta',
+  relaxed: 'Relajado',
+  walking: 'Caminando',
+  other: 'Otro',
 }
 
 const MEANINGS: Record<SoundType, string[]> = {
@@ -23,6 +33,15 @@ const MEANINGS: Record<SoundType, string[]> = {
   howl: ['¡Los extraño!', '¿Dónde están?', 'Escuché algo raro', 'Estoy solo'],
   pant: ['Tengo calor', 'Estoy contento', 'Cansado del juego', 'Necesito agua'],
   silence: ['Todo tranquilo', 'Estoy relajado', 'Durmiendo...'],
+  lying: ['Descansando', 'Relajado en el piso'],
+  sitting: ['Esperando', 'Atento'],
+  playing: ['¡Diversión!', '¡Quiero más!'],
+  eating: ['Comiendo rico', 'Hora de comer'],
+  sleeping: ['Zzz...', 'Soñando'],
+  alert: ['Algo pasa', 'Vigilante'],
+  relaxed: ['Todo bien', 'Tranquilo'],
+  walking: ['Paseando', 'Explorando'],
+  other: ['Registrando momento'],
 }
 
 export function getLabel(type: SoundType): string {

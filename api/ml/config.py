@@ -14,8 +14,21 @@ SEPARATED_DIR = ML_DIR / "separated"
 for d in [PROCESSED_DIR, FEATURES_DIR, MODELS_DIR, SEPARATED_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-LABELS = ["bark", "whine", "growl", "howl", "pant"]
+LABELS = [
+    "bark", "whine", "growl", "howl", "pant",
+    "playing", "sitting", "lying", "eating", "sleeping",
+    "alert", "relaxed", "walking", "other",
+]
 SAMPLE_RATE = 16000
 N_MFCC = 40
 HOP_LENGTH = 512
 MAX_DURATION_S = 10
+FEATURE_VERSION = 2
+
+AUGMENTATIONS = [
+    ("pitch_up", {"pitch_steps": 2}),
+    ("pitch_down", {"pitch_steps": -2}),
+    ("faster", {"stretch_rate": 1.15}),
+    ("slower", {"stretch_rate": 0.85}),
+    ("noisy", {"noise_std": 0.005}),
+]

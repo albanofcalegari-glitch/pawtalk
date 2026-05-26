@@ -41,21 +41,9 @@ def predict_audio(audio_bytes: bytes) -> dict | None:
 
     y = y[:SAMPLE_RATE * MAX_DURATION_S]
 
-    mfcc = librosa.feature.mfcc(y=y, sr=SAMPLE_RATE, n_mfcc=N_MFCC, hop_length=HOP_LENGTH)
-    mfcc_delta = librosa.feature.delta(mfcc)
-    spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
-    spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
-    zcr = librosa.feature.zero_crossing_rate(y, hop_length=HOP_LENGTH)
-    chroma = librosa.feature.chroma_stft(y=y, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
-    rms = librosa.feature.rms(y=y, hop_length=HOP_LENGTH)
-
-    def stats(feat):
-        return np.concatenate([feat.mean(axis=1), feat.std(axis=1)])
-
-    feature_vector = np.concatenate([
-        stats(mfcc), stats(mfcc_delta), stats(spectral_centroid),
-        stats(spectral_contrast), stats(zcr), stats(chroma), stats(rms),
-    ]).reshape(1, -1)
+    from extract_features import extract
+    features = extract(y)
+    feature_vector = np.concatenate(list(features.values())).reshape(1, -1)
 
     proba = _model.predict_proba(feature_vector)[0]
     pred_idx = np.argmax(proba)
